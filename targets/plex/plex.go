@@ -2,8 +2,10 @@ package plex
 
 import (
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cloudbox/autoscan"
 	"github.com/rs/zerolog"
@@ -12,6 +14,7 @@ import (
 type Config struct {
 	URL       string             `yaml:"url"`
 	Token     string             `yaml:"token"`
+	Delay     int                `yaml:"delay"`
 	Rewrite   []autoscan.Rewrite `yaml:"rewrite"`
 	Verbosity string             `yaml:"verbosity"`
 }
@@ -19,6 +22,7 @@ type Config struct {
 type target struct {
 	url       string
 	token     string
+	delay     int
 	libraries []library
 
 	log     zerolog.Logger
@@ -60,6 +64,7 @@ func New(c Config) (autoscan.Target, error) {
 	return &target{
 		url:       c.URL,
 		token:     c.Token,
+		delay:     c.Delay,
 		libraries: libraries,
 
 		log:     l,
@@ -74,6 +79,15 @@ func (t target) Available() error {
 }
 
 func (t target) Scan(scan autoscan.Scan) error {
+
+	// sleep if specified
+	if t.delay > 0 {
+		time.Sleep(time.Duration(t.delay) * time.Second)
+		log.Info().
+			Int("delay", t.delay).
+			Msg("Sleeping: ")
+	}
+
 	// determine library for this scan
 	scanFolder := t.rewrite(scan.Folder)
 
